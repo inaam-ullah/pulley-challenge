@@ -19,6 +19,13 @@ def solve_challenge(challenge)
   encrypted_path = challenge['encrypted_path']
   next_uri = URI("https://ciphersprint.pulley.com/#{encrypted_path}")  # Base URL updated.
 
+  puts "Getting 1 Level Challenge................................................................"
+  next_challenge = get_challenge(next_uri)
+
+  puts "Solving Level 1: Converted to a JSON array of ASCII values"
+    # Decode the JSON array of ASCII values to a string.
+  encrypted_path = JSON.parse(next_challenge['encrypted_path'].gsub('task_', '')).map { |ascii| ascii.chr }.join
+  
   # Here you will add logic to solve the next challenge based on its content.
   puts "Next challenge to solve: #{next_challenge}"
   # This is a placeholder. You need to implement actual solution logic.
