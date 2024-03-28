@@ -35,6 +35,15 @@ def solve_challenge(challenge)
   # Here you will add logic to solve the next challenge based on its content.
   puts "Next challenge to solve: #{next_challenge}"
   # This is a placeholder. You need to implement actual solution logic.
+
+  puts "Getting Level 3 Challenge................................................................"
+  next_uri = URI("https://ciphersprint.pulley.com/task_#{encrypted_path}")
+  next_challenge = get_challenge(next_uri)# Base URL updated.
+
+
+  ascii_value = extract_number_from_description(next_challenge['encryption_method'])
+  puts "Solving Leve 3: Added #{ascii_value} to ASCII value of each character"
+  encrypted_path = next_challenge['encrypted_path'].sub('task_', '').chars.map { |char| (char.ord - ascii_value).chr }.join
 end
 
 # Initialize the process with the first challenge URI
