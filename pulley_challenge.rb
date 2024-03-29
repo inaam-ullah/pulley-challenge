@@ -44,6 +44,16 @@ def solve_challenge(challenge)
   ascii_value = extract_number_from_description(next_challenge['encryption_method'])
   puts "Solving Leve 3: Added #{ascii_value} to ASCII value of each character"
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '').chars.map { |char| (char.ord - ascii_value).chr }.join
+
+  puts "Getting Level 4 Challenge................................................................"
+  next_uri = URI("https://ciphersprint.pulley.com/task_#{encrypted_path}")
+  next_challenge = get_challenge(next_uri)# Base URL updated.
+
+  puts "Solving Leve 4: hex decoded, encrypted with XOR, hex encoded again. key: secret"
+  encrypted_path = next_challenge['encrypted_path'].sub('task_', '')
+  hex_decoded = hex_decode(encrypted_path)
+  decrypted_data = xor_decrypt(hex_decoded, "secret")
+  decrypted_data  # return this decrypted data
 end
 
 # Initialize the process with the first challenge URI
