@@ -14,6 +14,22 @@ def get_challenge(uri)
   end
 end
 
+def extract_number_from_description(description)
+  if match = description.match(/added (-?\d+) to ASCII value/)
+    return match[1].to_i
+  end
+  nil
+end
+
+def hex_decode(hex_string)
+  [hex_string].pack('H*')
+end
+
+def xor_decrypt(data, key)
+  key_bytes = key.bytes.cycle
+  data.bytes.map { |byte| (byte ^ key_bytes.next).chr }.join
+end
+
 def solve_challenge(challenge)
   # Since the first challenge did not require a real solution, move to the next step.
   encrypted_path = challenge['encrypted_path']
@@ -40,7 +56,6 @@ def solve_challenge(challenge)
   next_uri = URI("https://ciphersprint.pulley.com/task_#{encrypted_path}")
   next_challenge = get_challenge(next_uri)# Base URL updated.
 
-
   ascii_value = extract_number_from_description(next_challenge['encryption_method'])
   puts "Solving Leve 3: Added #{ascii_value} to ASCII value of each character"
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '').chars.map { |char| (char.ord - ascii_value).chr }.join
@@ -53,7 +68,6 @@ def solve_challenge(challenge)
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '')
   hex_decoded = hex_decode(encrypted_path)
   decrypted_data = xor_decrypt(hex_decoded, "secret")
-  decrypted_data  # return this decrypted data
 end
 
 # Initialize the process with the first challenge URI
