@@ -68,6 +68,10 @@ def solve_challenge(challenge)
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '')
   hex_decoded = hex_decode(encrypted_path)
   decrypted_data = xor_decrypt(hex_decoded, "secret")
+
+  puts "Getting Level 5 Challenge................................................................"
+  next_uri = URI("https://ciphersprint.pulley.com/#{decrypted_data}")
+  next_challenge = get_challenge(next_uri)# Base URL updated.
 end
 
 # Initialize the process with the first challenge URI
