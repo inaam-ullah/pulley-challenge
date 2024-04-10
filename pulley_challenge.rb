@@ -1,6 +1,8 @@
 require 'net/http'
 require 'uri'
 require 'json'
+require 'base64'
+require 'msgpack'
 
 def get_challenge(uri)
   response = Net::HTTP.get_response(uri)
@@ -12,6 +14,19 @@ def get_challenge(uri)
     puts "Failed to get challenge: #{response.message}"
     nil
   end
+end
+
+def decode_messagepack(base64_encoded_msgpack)
+  messagepack_data = Base64.decode64(base64_encoded_msgpack)
+  MessagePack.unpack(messagepack_data)
+end
+
+def unscramble_string(scrambled_string, positions)
+  unscrambled_array = Array.new(scrambled_string.length)
+  positions.each_with_index do |original_index, scrambled_index|
+    unscrambled_array[original_index] = scrambled_string[scrambled_index]
+  end
+  unscrambled_array.join
 end
 
 def extract_number_from_description(description)
@@ -33,8 +48,10 @@ def xor_decrypt(data, key)
   data.bytes.map { |byte| (byte ^ key_bytes.next).chr }.join
 end
 
-def ensure_valid_uri_component(component)
-  URI.encode_www_form_component(component)
+def extract_base64_messagepack(description)
+  if match = description.match(/scrambled! original positions as base64 encoded messagepack: (.+)/)
+    match[1]
+  end
 end
 
 def solve_challenge(challenge)
@@ -69,6 +86,8 @@ def solve_challenge(challenge)
   next_challenge = get_challenge(next_uri)# Base URL updated.
 
   puts "Solving Leve 4: hex decoded, encrypted with XOR, hex encoded again. key: secret"
+  encrypted_path = next_challenge['encrypted_path'].sub('task_', '')
+
   # Hex decode the encrypted_path
   hex_decoded = hex_decode(encrypted_path)
 
@@ -86,7 +105,12 @@ def solve_challenge(challenge)
   end
 
   puts "Getting Level 5 Challenge................................................................"
-  next_challenge = get_challenge(next_uri)# Base URL updated.
+  next_challenge = get_challenge(next_uri) # Base URL updated.
+  puts "Solving Leve 5: scrambled! original positions as base64 encoded messagepack:"
+
+  base64_encoded_msgpack = extract_base64_messagepack(next_challenge['encryption_method'])
+  positions = decode_messagepack(base64_encoded_msgpack)
+  encrypted_path = unscramble_string(next_challenge['encrypted_path'].sub('task_', ''), positions)
 
   # Here you will add logic to solve the next challenge based on its content.
   puts "Next challenge to solve: #{next_challenge}"
