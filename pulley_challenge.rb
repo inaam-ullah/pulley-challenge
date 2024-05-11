@@ -14,10 +14,25 @@ def get_challenge(uri)
   end
 end
 
+def solve_challenge(challenge)
+  # Since the first challenge did not require a real solution, move to the next step.
+  encrypted_path = challenge['encrypted_path']
+  next_uri = URI("https://ciphersprint.pulley.com/#{encrypted_path}")  # Base URL updated.
+
+  # Here you will add logic to solve the next challenge based on its content.
+  puts "Next challenge to solve: #{next_challenge}"
+  # This is a placeholder. You need to implement actual solution logic.
+end
+
 # Initialize the process with the first challenge URI
 email = ENV['EMAIL']
 base_uri = URI("https://ciphersprint.pulley.com/#{email}")  # Base URL and email updated.
 
-puts 'Getting 0 Level Challenge................................................................'
+puts 'Getting Level 0 Challenge................................................................'
 
-get_challenge(base_uri)
+challenge = get_challenge(base_uri)
+
+if challenge
+  puts 'Solving Level 0 Challenge................................................................'
+  solve_challenge(challenge)
+end
