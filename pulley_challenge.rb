@@ -1,6 +1,8 @@
 require 'net/http'
 require 'uri'
 require 'json'
+require 'base64'
+require 'msgpack'
 
 def get_challenge(uri)
   response = Net::HTTP.get_response(uri)
@@ -14,20 +16,42 @@ def get_challenge(uri)
   end
 end
 
+def decode_messagepack(base64_encoded_msgpack)
+  messagepack_data = Base64.decode64(base64_encoded_msgpack)
+  MessagePack.unpack(messagepack_data)
+end
+
+def unscramble_string(scrambled_string, positions)
+  unscrambled_array = Array.new(scrambled_string.length)
+  positions.each_with_index do |original_index, scrambled_index|
+    unscrambled_array[original_index] = scrambled_string[scrambled_index]
+  end
+  unscrambled_array.join
+end
+
 def extract_number_from_description(description)
   if match = description.match(/added (-?\d+) to ASCII value/)
-    return match[1].to_i
+    match[1].to_i
   end
-  nil
 end
 
 def hex_decode(hex_string)
   [hex_string].pack('H*')
 end
 
+def hex_encode(binary_data)
+  binary_data.unpack1('H*')
+end
+
 def xor_decrypt(data, key)
   key_bytes = key.bytes.cycle
   data.bytes.map { |byte| (byte ^ key_bytes.next).chr }.join
+end
+
+def extract_base64_messagepack(description)
+  if match = description.match(/scrambled! original positions as base64 encoded messagepack: (.+)/)
+    match[1]
+  end
 end
 
 def solve_challenge(challenge)
@@ -40,7 +64,7 @@ def solve_challenge(challenge)
 
   puts "Solving Level 1: Converted to a JSON array of ASCII values"
     # Decode the JSON array of ASCII values to a string.
-  encrypted_path = JSON.parse(next_challenge['encrypted_path'].gsub('task_', '')).map { |ascii| ascii.chr }.join
+  encrypted_path = JSON.parse(next_challenge['encrypted_path'].gsub('task_', '')).map(&:chr).join
 
   puts "Getting 2 Level Challenge................................................................"
   next_uri = URI("https://ciphersprint.pulley.com/task_#{encrypted_path}")
@@ -48,16 +72,13 @@ def solve_challenge(challenge)
 
   puts 'Solving Leve 2: inserted some non-hex characters'
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '').gsub(/[^0-9a-f]/i, '')
-  # Here you will add logic to solve the next challenge based on its content.
-  puts "Next challenge to solve: #{next_challenge}"
-  # This is a placeholder. You need to implement actual solution logic.
 
   puts "Getting Level 3 Challenge................................................................"
   next_uri = URI("https://ciphersprint.pulley.com/task_#{encrypted_path}")
   next_challenge = get_challenge(next_uri)# Base URL updated.
 
   ascii_value = extract_number_from_description(next_challenge['encryption_method'])
-  puts "Solving Leve 3: Added #{ascii_value} to ASCII value of each character"
+  puts "Solving Leve 3: added #{ascii_value} to ASCII value of each character"
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '').chars.map { |char| (char.ord - ascii_value).chr }.join
 
   puts "Getting Level 4 Challenge................................................................"
@@ -66,8 +87,34 @@ def solve_challenge(challenge)
 
   puts "Solving Leve 4: hex decoded, encrypted with XOR, hex encoded again. key: secret"
   encrypted_path = next_challenge['encrypted_path'].sub('task_', '')
+
+  # Hex decode the encrypted_path
   hex_decoded = hex_decode(encrypted_path)
+
+  # Decrypt the hex decoded data using XOR with the key "secret"
   decrypted_data = xor_decrypt(hex_decoded, "secret")
+
+  # Re-encode the decrypted data into hex
+  re_encoded_hex = hex_encode(decrypted_data)
+
+  begin
+    next_uri = URI("https://ciphersprint.pulley.com/task_#{re_encoded_hex}")
+  rescue URI::InvalidURIError
+    puts "Invalid URI generated from decrypted data: 'task_#{re_encoded_hex.inspect}'"
+    return
+  end
+
+  puts "Getting Level 5 Challenge................................................................"
+  next_challenge = get_challenge(next_uri) # Base URL updated.
+  puts "Solving Leve 5: scrambled! original positions as base64 encoded messagepack:"
+
+  base64_encoded_msgpack = extract_base64_messagepack(next_challenge['encryption_method'])
+  positions = decode_messagepack(base64_encoded_msgpack)
+  encrypted_path = unscramble_string(next_challenge['encrypted_path'].sub('task_', ''), positions)
+
+  # Here you will add logic to solve the next challenge based on its content.
+  puts "Next challenge to solve: #{next_challenge}"
+  # This is a placeholder. You need to implement actual solution logic.
 end
 
 # Initialize the process with the first challenge URI
